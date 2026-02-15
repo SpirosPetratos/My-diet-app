@@ -10,7 +10,7 @@ st.set_page_config(page_title="Diet Tracker", layout="centered")
 
 # --- API KEY ---
 # Βάλε εδώ το κλειδί σου. Σιγουρέψου ότι δεν έχει κενά μέσα στα εισαγωγικά.
-API_KEY = "AIzaSyA2VOGJj6BrrK8wG6RTEln5CVDKFIYoI_E" 
+API_KEY = "AIzaSyB4Er7_2zt5W9A_jSrTbMqg2_rAlNlYFis" 
 
 genai.configure(api_key=API_KEY)
 
