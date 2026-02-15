@@ -5,75 +5,79 @@ import json
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 
-# 1. ΡΥΘΜΙΣΗ ΣΕΛΙΔΑΣ
-st.set_page_config(page_title="AI Diet Tracker", page_icon="🥗")
+st.set_page_config(page_title="Diet Tracker", layout="centered")
 
-# --- ΒΑΛΕ ΤΟ API KEY ΣΟΥ ΕΔΩ ---
-API_KEY = "AIzaSyA2VOGJj6BrrK8wG6RTEln5CVDKFIYoI_E" 
-# ------------------------------
-
+# --- API KEY ---
+API_KEY = "AIzaSyA2VOGJj6BrrK8wG6RTEln5CVDKFIYoI_E"
 genai.configure(api_key=API_KEY)
 
-# ΔΟΚΙΜΑΖΟΥΜΕ ΤΟ ΠΙΟ ΣΤΑΘΕΡΟ ΟΝΟΜΑ ΜΟΝΤΕΛΟΥ
-model = genai.GenerativeModel('gemini-pro-vision')
+# ΑΥΤΟΜΑΤΗ ΕΠΙΛΟΓΗ ΜΟΝΤΕΛΟΥ ΓΙΑ ΑΠΟΦΥΓΗ 404
+@st.cache_resource
+def get_working_model():
+    try:
+        # Ψάχνουμε στη λίστα της Google για ένα μοντέλο που υποστηρίζει εικόνες
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                if 'gemini-1.5-flash' in m.name or 'gemini-pro-vision' in m.name:
+                    return genai.GenerativeModel(m.name)
+        return genai.GenerativeModel('gemini-1.5-flash') # Fallback
+    except:
+        return genai.GenerativeModel('gemini-1.5-flash')
 
-# 2. ΣΥΝΔΕΣΗ ΜΕ GOOGLE SHEETS
+model = get_working_model()
+
+# --- ΣΥΝΔΕΣΗ SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-def get_data():
+def load_data():
     try:
         df = conn.read(worksheet="Sheet1")
         return df.dropna(how="all")
     except:
         return pd.DataFrame(columns=['item', 'p', 'c', 'f', 'cal'])
 
-df = get_data()
+df = load_data()
 
-st.title("📸 AI Nutrition Tracker")
+st.title("🥗 AI Food Tracker")
+st.info(f"Συνδεδεμένο μοντέλο: {model.model_name}")
 
-# 3. ΚΑΜΕΡΑ
-img_file = st.camera_input("Βγάλε φωτό το φαγητό σου")
+img_file = st.camera_input("Τράβα μια φωτό")
 
 if img_file:
     img = Image.open(img_file)
-    with st.spinner("Το AI αναλύει..."):
-        # Ζητάμε από το AI να μην βάλει markdown (```) για να μην μπερδευτεί το iPhone
-        prompt = 'Identify the food. Return ONLY a JSON object: {"item": "όνομα", "p": 10, "c": 20, "f": 5, "cal": 150}. No other text.'
+    with st.spinner("Ανάλυση..."):
+        prompt = "Analyze food. Return ONLY a JSON object: {'item': 'name', 'p': 10, 'c': 10, 'f': 10, 'cal': 100}"
         
         try:
             response = model.generate_content([prompt, img])
-            res_text = response.text.strip()
+            # Καθαρισμός κειμένου
+            clean_txt = response.text.replace("```json", "").replace("```", "").strip()
+            # Μετατροπή σε JSON (αντικατάσταση μονών εισαγωγικών αν υπάρχουν)
+            clean_txt = clean_txt.replace("'", '"')
+            data = json.loads(clean_txt)
             
-            # Καθαρισμός για το iPhone: βρίσκουμε το πρώτο { και το τελευταίο }
-            start = res_text.find("{")
-            end = res_text.rfind("}") + 1
-            if start != -1 and end != 0:
-                data = json.loads(res_text[start:end])
-                
-                # Αποθήκευση
-                new_row = pd.DataFrame([data])
-                updated_df = pd.concat([df, new_row], ignore_index=True)
-                conn.update(worksheet="Sheet1", data=updated_df)
-                
-                st.success(f"Προστέθηκε: {data['item']}")
-                st.rerun()
-            else:
-                st.error("Το AI δεν έστειλε σωστή μορφή δεδομένων.")
+            # Αποθήκευση
+            new_row = pd.DataFrame([data])
+            updated_df = pd.concat([df, new_row], ignore_index=True)
+            conn.update(worksheet="Sheet1", data=updated_df)
+            
+            st.success("Καταγράφηκε!")
+            st.rerun()
         except Exception as e:
-            st.error(f"Σφάλμα: {e}")
+            st.error(f"Σφάλμα Google: {e}")
 
-# 4. ΕΜΦΑΝΙΣΗ ΣΥΝΟΛΩΝ
+# --- ΕΜΦΑΝΙΣΗ ΣΥΝΟΛΩΝ ---
 if not df.empty:
     st.divider()
-    for col in ['p', 'c', 'f', 'cal']:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    for c in ['p', 'c', 'f', 'cal']:
+        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
     
-    st.header(f"🔥 {int(df['cal'].sum())} kcal")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Πρωτεΐνη", f"{int(df['p'].sum())}g")
-    c2.metric("Υδατ/κες", f"{int(df['c'].sum())}g")
-    c3.metric("Λίπη", f"{int(df['f'].sum())}g")
-
-    if st.button("🚨 Μηδενισμός"):
+    st.metric("Συνολικές Θερμίδες", f"{int(df['cal'].sum())} kcal")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Πρωτεΐνη", f"{int(df['p'].sum())}g")
+    col2.metric("Υδατ/κες", f"{int(df['c'].sum())}g")
+    col3.metric("Λίπη", f"{int(df['f'].sum())}g")
+    
+    if st.button("Διαγραφή Δεδομένων (Reset)"):
         conn.update(worksheet="Sheet1", data=pd.DataFrame(columns=['item', 'p', 'c', 'f', 'cal']))
         st.rerun()
