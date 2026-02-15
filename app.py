@@ -8,7 +8,7 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="Diet Tracker")
 
 # --- API KEY ---
-API_KEY = "AIzaSyCKiCJypwJ4dy0Qxb4Cv8vNxx9A2CxYlD8" 
+API_KEY = "AIzaSyBYuM11Q5wEWVzLYQZ5LXmjlCHZ7QlVyrY" 
 genai.configure(api_key=API_KEY, transport="rest")
 
 # Χρήση του 1.5-flash
