@@ -15,7 +15,7 @@ API_KEY = "AIzaSyA2VOGJj6BrrK8wG6RTEln5CVDKFIYoI_E"
 genai.configure(api_key=API_KEY)
 
 # ΔΟΚΙΜΑΖΟΥΜΕ ΤΟ ΠΙΟ ΣΤΑΘΕΡΟ ΟΝΟΜΑ ΜΟΝΤΕΛΟΥ
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-pro-vision')
 
 # 2. ΣΥΝΔΕΣΗ ΜΕ GOOGLE SHEETS
 conn = st.connection("gsheets", type=GSheetsConnection)
