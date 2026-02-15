@@ -9,7 +9,7 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="AI Diet Tracker", page_icon="🥗")
 
 # --- ΒΑΛΕ ΤΟ API KEY ΣΟΥ ΕΔΩ ---
-API_KEY = "ΒΑΛΕ_ΕΔΩ_ΤΟ_API_KEY_ΣΟΥ" 
+API_KEY = "AIzaSyA2VOGJj6BrrK8wG6RTEln5CVDKFIYoI_E" 
 # ------------------------------
 
 genai.configure(api_key=API_KEY)
